@@ -1,0 +1,293 @@
+# censuschat <img src="man/figures/logo.png" align="right" height="138" />
+<!-- badges: start -->
+<!-- badges: end -->
+
+**This is a still work in progress. Always check the code this app generates and otherwise use at your own risk!!**
+
+This package was inspired by the _existence_ of a [U.S. Census Bureau Data API MCP Server](https://github.com/uscensusbureau/us-census-bureau-data-api-mcp) and the incredibly useful [tidycensus R package](https://walker-data.com/tidycensus/) by Kyle Walker. However, it's not affiliated with them, so any errors this package may produce are mine alone.
+
+censuschat aims to let you ask questions about U.S. Census data in natural language. More specifically, a large language model takes queries about Census data and translates them into tidycensus R code. It uses the [ellmer R package](https://ellmer.tidyverse.org/) under the hood. 
+
+Who created this repository? I outlined detailed specifications for this project, made some corrections to both coding approach and R code, and did a lot of back and forth with an LLM. However, the majority of the code here was written by Claude Opus 4.5.
+
+Most of the following README was also written by Claude, lightly edited by me.
+
+## Overview
+
+Chat with U.S. Census data using natural language. Ask questions like "What's the median income in Boston?" and get answers with reproducible R code.
+
+The package was designed primarily to use within R. However, it also includes an MCP server (more on that below).
+
+## Installation
+
+```r
+# Install from GitHub
+remotes::install_github("smach/censuschat", build_vignettes = TRUE)
+```
+
+Or from a local version of this code:
+
+```r
+devtools::install(build_vignettes = TRUE)
+```
+
+## Requirements
+- An Anthropic API key (default), OpenAI API key, or key for whatever provider you choose, as long as it's [supported by ellmer](https://ellmer.tidyverse.org/). Make sure your key is in your .Renviron file as `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc. Also make sure you've purchased necessary credits or set up billing for providers which need that. Note: As of January 2026, I've had the best results with Claude.
+- A Census API key. Census keys are free, request one at https://api.census.gov/data/key_signup.html
+
+## Quick Start for R Chats
+
+```r
+library(censuschat)
+
+# Set your API keys (one time) if it's not already in your .Renviron file as CENSUS_API_KEY
+census_api_key("your_census_key", install = TRUE)
+
+# Launch web chat interface
+census_chat()
+```
+
+That's it! A chat window opens in your browser. Ask away:
+
+- "What's the population of California?"
+- "Compare median household income across New England states"
+- "Show me median home values by Census tract in Framingham, MA"
+
+You can also specify specific data sources, such as "What was the population of New York State in 2010 and 2020 based on the decennial censuses?"
+
+## Three Ways to Chat in R
+
+### 1. Web Interface (Easiest)
+```r
+census_chat()
+```
+Opens a Shiny app in your browser with a chat UI.
+
+### 2. Console Chat
+```r
+census_chat_console()
+#> === Census Data Chat ===
+#> Ask questions about U.S. Census data.
+#> Type 'quit' to exit.
+#> 
+#> > What's the median income in Virginia?
+```
+
+### 3. Programmatic Access
+```r
+chat <- census_chat_create()
+
+# Single question
+response <- chat$chat("What's the population of Boston?")
+cat(response)
+
+# Follow-up questions (maintains context)
+chat$chat("How does that compare to Cambridge?")
+chat$chat("Show me the tidycensus code for both")
+```
+
+## Transparency & Reproducibility
+
+Every response includes:
+
+- **Methodology**: What data source, year, and geography was queried
+- **tidycensus code**: Copy-paste R code to reproduce the analysis yourself
+
+Example response:
+```
+The median household income in Boston is $81,744 according to the latest
+ACS 5-year estimates.
+
+**Methodology:**
+- Dataset: American Community Survey 5-year estimates (acs/acs5)
+- Variable: B19013_001 (Median Household Income)
+- Geography: Boston city, Massachusetts
+
+**Reproducible R code:**
+library(tidycensus)
+
+data <- get_acs(
+  geography = "place",
+  variables = c("B19013_001"),
+  state = "MA",
+  survey = "acs5"
+) |>
+  filter(grepl("Boston", NAME))
+```
+
+## Extra: Tract Data for Places
+
+The package solves one Census geography issue. Normally you can't ask for "tracts in Framingham" because tracts nest under counties, not places.
+
+This package automatically:
+1. Finds the place's FIPS code
+2. Determines which county it's in
+3. Gets all tracts in that county
+4. Provides tidycensus + tigris code for exact spatial filtering
+
+```r
+chat$chat("What's the median income by Census tract in Framingham, MA?")
+```
+
+## Using a Different LLM
+
+By default, censuschat uses Anthropic's Claude (claude-sonnet-4-5-20250929). You can use any [ellmer-supported provider](https://ellmer.tidyverse.org/) by specifying `"provider"` or `"provider/model"`:
+
+```r
+# Just the provider (uses its default model)
+census_chat("anthropic")
+census_chat("openai")
+census_chat("gemini")
+census_chat("ollama")
+
+# Provider with a specific model
+census_chat("anthropic/claude-sonnet-4-5-20250929")
+census_chat("openai/gpt-4o")
+census_chat("ollama/llama3")
+census_chat("gemini/gemini-1.5-pro")
+
+# This works with all three chat functions
+census_chat_console("openai/gpt-4o")
+chat <- census_chat_create("ollama/llama3")
+```
+
+Reminder: Make sure your API key is set in your `.Renviron` file when needed. Each provider expects a specific environment variable (e.g., `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`). For Ollama, no API key is needed since it runs locally.
+
+## Use the Tools Directly
+
+You can also use the Census tools with your own ellmer chat:
+
+```r
+library(ellmer)
+library(censuschat)
+
+# Create a custom chat with Census tools
+chat <- chat_anthropic(
+  system_prompt = "You are a data journalist researching inequality."
+)
+chat$set_tools(census_tools())
+
+chat$chat("Find income disparities in the Boston area")
+```
+
+Reminder: When asking for something like "find income disparities," be especially careful to check the LLM's methodology and consider what else you might want to ask.
+
+
+## Available Tools
+
+The package provides these tools to the LLM:
+
+| Tool | Description |
+|------|-------------|
+| `list_datasets` | Search available Census datasets |
+| `fetch_data` | Query Census API for statistics |
+| `resolve_fips` | Look up FIPS codes by place name |
+| `get_variables` | Reference common variable codes |
+| `get_place_tracts` | Get tract data for a specific city/town |
+
+## When This Package Might Be Useful
+
+This package is a natural language interface that:
+
+- Helps you explore what's available
+- Generates tidycensus code you can use directly
+- Handles some issues like FIPS lookups and geography hierarchies
+- Can be useful for learning or quick exploration
+
+## MCP Server for Claude Desktop / Claude Code
+
+This package can also run as an MCP server, allowing you to query Census data directly from Claude Desktop or Claude Code.
+
+**Advantage**: Uses your Claude subscription (Pro, Max, etc.) instead of pay-per-use API calls.
+
+### Setup
+
+First, install the mcptools package:
+
+```r
+pak::pak("posit-dev/mcptools")
+```
+
+Make sure your Census API key is in your `.Renviron` file:
+
+```r
+census_api_key("your_census_key", install = TRUE)
+```
+
+Then configure your MCP client:
+
+#### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "censuschat": {
+      "command": "Rscript",
+      "args": ["-e", "censuschat::mcp_serve()"]
+    }
+  }
+}
+```
+
+#### Claude Code
+
+Run in your terminal:
+
+```bash
+claude mcp add censuschat -- Rscript -e "censuschat::mcp_serve()"
+```
+
+### Usage
+
+Once configured, just ask Claude about Census data in Claude Desktop or Claude Code. The Census tools will be available automatically.
+
+## Evaluating Accuracy with vitals
+
+Unit tests (testthat) verify that code runs without errors, but they don't tell us if the LLM is giving *good* answers. For that, we use [vitals](https://vitals.tidyverse.org/), an R framework for evaluating LLM output quality.
+
+### What vitals Does
+
+vitals runs a set of test questions through the LLM, then uses a grader model to score each response. For censuschat, it checks whether responses:
+- Use the correct data source (ACS vs Decennial Census)
+- Reference appropriate variable codes
+- Query the right geography level
+
+Results are logged and viewable in an interactive viewer.
+
+### Running the Evaluation
+
+```r
+# Install vitals (one time)
+pak::pak("tidyverse/vitals")
+
+# Load the package and run evaluation
+devtools::load_all()
+task <- census_eval()
+
+# View results
+task$metrics        # Overall accuracy scores
+task$get_samples()  # Individual question results
+vitals_view()       # Interactive log viewer
+```
+
+The evaluation runs 14 Census questions covering income, population, geography levels, and edge cases like Puerto Rico and DC.
+
+### Customizing
+
+```r
+# Run with more epochs for consistency testing
+task <- census_eval(epochs = 3)
+
+# Test a different model
+task <- census_eval(provider = "openai/gpt-4o")
+
+# Use your own test questions
+task <- census_eval(dataset = "path/to/questions.csv")
+```
+
+Your CSV needs `input` (the question) and `target` (grading criteria) columns.

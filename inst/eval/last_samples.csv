@@ -1,0 +1,28 @@
+"input","target","id","result","solver_chat","score","scorer_chat","scorer_metadata","scorer"
+"What is the median household income in California?","Should use ACS data with variable B19013_001 for median household income. Geography should be state-level for California (state='CA' or state='06'). Should return a dollar amount.",1,"## Median Household Income in California
+
+**$96,334** (± $298)
+
+This is the median household income for California from the American Community Survey (ACS) 5-year estimates, which represents the most recent available data.
+
+### Data Details:
+- **Source**: American Community Survey 5-Year Estimates
+- **Variable**: B19013_001 (Median Household Income in the Past 12 Months)
+- **Margin of Error**: ±$298 (at 90% confidence level)
+- **Geography**: Statewide
+
+### R Code to Reproduce:
+```r
+library(tidycensus)
+
+data <- get_acs(
+  geography = ""state"",
+  variables = c(""B19013_001""),
+  survey = ""acs5"",
+  state = ""California""
+)
+
+print(data)
+```
+
+The ACS 5-year estimates provide the most reliable data for income statistics as they are based on 5 years of pooled survey data, offering better precision than 1-year estimates.",
