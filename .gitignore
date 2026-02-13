@@ -6,3 +6,6 @@ censuschat_eval_logs
 2026*
 tmpclaude*
 .quarto
+.Renviron
+.env
+
