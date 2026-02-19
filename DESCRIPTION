@@ -1,8 +1,10 @@
 Package: censuschat
 Title: Chat with U.S. Census Data Using Natural Language
 Version: 0.1.0
-Authors@R: 
-    person("Your", "Name", email = "you@example.com", role = c("aut", "cre"))
+Authors@R: c(
+    person("Sharon", "Machlis", email = "smachlis@gmail.com", role = c("aut", "cre")),
+    person("Claude (Anthropic)", role = "ctb", comment = "AI assistant")
+    )
 Description: Query U.S. Census Bureau data through natural language using large
     language models. Ask questions like "What's the median income in Boston?" or
     "Show me housing data by tract in Framingham, MA" and get answers with
@@ -29,6 +31,6 @@ Suggests:
     knitr,
     rmarkdown
 Config/testthat/edition: 3
-URL: https://github.com/yourname/censuschat
-BugReports: https://github.com/yourname/censuschat/issues
+URL: https://github.com/smach/censuschat
+BugReports: https://github.com/smach/censuschat/issues
 VignetteBuilder: knitr

@@ -16,7 +16,7 @@
 # =============================================================================
 
 #' @import ellmer
-#' @import httr2
+#' @importFrom httr2 request req_perform resp_body_json
 #' @importFrom jsonlite toJSON fromJSON
 NULL
 

@@ -1,2 +1,14 @@
 ^doc$
 ^Meta$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.gitignore$
+^\.git$
+^\.github$
+^\.claude$
+^\.quarto$
+^README\.md$
+^LICENSE\.md$
+^censuschat_eval_logs$
+^tmpclaude.*$
+^\.Rhistory$
