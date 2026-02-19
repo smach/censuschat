@@ -34,6 +34,7 @@ devtools::install(build_vignettes = TRUE)
 ## Requirements
 - An Anthropic API key (default), OpenAI API key, or key for whatever provider you choose, as long as it's [supported by ellmer](https://ellmer.tidyverse.org/). Make sure your key is in your .Renviron file as `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc. Also make sure you've purchased necessary credits or set up billing for providers which need that. Note: As of January 2026, I've had the best results with Claude.
 - A Census API key. Census keys are free, request one at https://api.census.gov/data/key_signup.html
+- R >= 4.1
 
 ## Quick Start for R Chats
 
@@ -291,3 +292,5 @@ task <- census_eval(dataset = "path/to/questions.csv")
 ```
 
 Your CSV needs `input` (the question) and `target` (grading criteria) columns.
+
+_Hex logo by Google's Nano Banana Pro_

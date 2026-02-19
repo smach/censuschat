@@ -12,3 +12,4 @@
 ^censuschat_eval_logs$
 ^tmpclaude.*$
 ^\.Rhistory$
+^\.positai$

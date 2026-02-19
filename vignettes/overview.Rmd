@@ -15,8 +15,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
-
 **This is a still work in progress. Always check the code this app generates and otherwise use at your own risk!!**
 
 This package was inspired by the _existence_ of a [U.S. Census Bureau Data API MCP Server](https://github.com/uscensusbureau/us-census-bureau-data-api-mcp) and the incredibly useful [tidycensus R package](https://walker-data.com/tidycensus/) by Kyle Walker. However, it's not affiliated with them, so any errors this package may produce are mine alone.
@@ -27,8 +25,7 @@ Who created this repository? I outlined detailed specifications for this project
 
 Most of the following README was also written by Claude, lightly edited by me.
 
-
-## Basics
+## Overview
 
 Chat with U.S. Census data using natural language. Ask questions like "What's the median income in Boston?" and get answers with reproducible R code.
 
@@ -50,6 +47,7 @@ devtools::install(build_vignettes = TRUE)
 ## Requirements
 - An Anthropic API key (default), OpenAI API key, or key for whatever provider you choose, as long as it's [supported by ellmer](https://ellmer.tidyverse.org/). Make sure your key is in your .Renviron file as `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, etc. Also make sure you've purchased necessary credits or set up billing for providers which need that. Note: As of January 2026, I've had the best results with Claude.
 - A Census API key. Census keys are free, request one at https://api.census.gov/data/key_signup.html
+- R >= 4.1
 
 ## Quick Start for R Chats
 
@@ -214,7 +212,7 @@ This package is a natural language interface that:
 
 This package can also run as an MCP server, allowing you to query Census data directly from Claude Desktop or Claude Code.
 
-**Advantage**: Uses your Claude subscription (Pro, Max, etc.) instead of pay-per-use API calls!
+**Advantage**: Uses your Claude subscription (Pro, Max, etc.) instead of pay-per-use API calls.
 
 ### Setup
 
@@ -262,6 +260,48 @@ claude mcp add censuschat -- Rscript -e "censuschat::mcp_serve()"
 
 Once configured, just ask Claude about Census data in Claude Desktop or Claude Code. The Census tools will be available automatically.
 
+## Evaluating Accuracy with vitals
 
+Unit tests (testthat) verify that code runs without errors, but they don't tell us if the LLM is giving *good* answers. For that, we use [vitals](https://vitals.tidyverse.org/), an R framework for evaluating LLM output quality.
 
+### What vitals Does
 
+vitals runs a set of test questions through the LLM, then uses a grader model to score each response. For censuschat, it checks whether responses:
+- Use the correct data source (ACS vs Decennial Census)
+- Reference appropriate variable codes
+- Query the right geography level
+
+Results are logged and viewable in an interactive viewer.
+
+### Running the Evaluation
+
+```r
+# Install vitals (one time)
+pak::pak("tidyverse/vitals")
+
+# Load the package and run evaluation
+devtools::load_all()
+task <- census_eval()
+
+# View results
+task$metrics        # Overall accuracy scores
+task$get_samples()  # Individual question results
+vitals_view()       # Interactive log viewer
+```
+
+The evaluation runs 14 Census questions covering income, population, geography levels, and edge cases like Puerto Rico and DC.
+
+### Customizing
+
+```r
+# Run with more epochs for consistency testing
+task <- census_eval(epochs = 3)
+
+# Test a different model
+task <- census_eval(provider = "openai/gpt-4o")
+
+# Use your own test questions
+task <- census_eval(dataset = "path/to/questions.csv")
+```
+
+Your CSV needs `input` (the question) and `target` (grading criteria) columns.
